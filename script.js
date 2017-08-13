@@ -128,6 +128,19 @@ var legendText = legendGroups
     return i < 5 ? 65 : 115
   });
 
+var yAxisText = svg.append("text")
+  .text(mainDataObject.name)
+  .attr("x", 665)
+  .attr("y", 30)
+  .attr("font-size",15);
+
+var yAxisText = svg.append("text")
+  .text("(" + mainDataObject.format + ")")
+  .attr("x", 746)
+  .attr("y", 30)
+  .attr("font-size",12);
+
+
 
 function setAccumulativeSum() {
   for (var i = 0; i < mainDataObject.bars.length; i++) {
