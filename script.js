@@ -19,6 +19,8 @@ var svgHeight = 800;
 var svgWidth = 800;
 var barsCount = mainDataObject.bars.length;
 var totalValueAverage = getArithmeticAverage();
+var tooltip = document.getElementById('tooltip');
+
 
 setLegendForEachValue();
 setAccumulativeSum();
@@ -74,6 +76,22 @@ var rect = groups.selectAll("rect")
     return svgWidth / barsCount;
   })
   .attr("y", svgHeight / 2)
+  .on("mouseenter", function (d) {
+    // tooltip.innerHTML = "<p>beqa</p>";
+    var groupTransform = d3.select(this.parentElement).attr("transform")
+    var xPosition = parseFloat(d3.select(this).attr("x")) + parseFloat(groupTransform.substring(groupTransform.indexOf("(")+1, groupTransform.indexOf(")")).split(",")[0]);
+    var yPosition = parseFloat(d3.select(this).attr("y"));
+
+    d3.select("#tooltip")
+      .style("left", xPosition)
+      .style("top", yPosition)
+      .text(d.legend.name + " " + d.accumulativeSum);
+
+    d3.select("#tooltip").classed("hidden", false);
+  })
+  .on("mouseleave", function () {
+    d3.select("#tooltip").classed("hidden", true);
+  })
   .transition()
   .duration(1000)
   .ease(d3.easeLinear)
@@ -132,13 +150,13 @@ var yAxisText = svg.append("text")
   .text(mainDataObject.name)
   .attr("x", 665)
   .attr("y", 30)
-  .attr("font-size",15);
+  .attr("font-size", 15);
 
 var yAxisText = svg.append("text")
   .text("(" + mainDataObject.format + ")")
   .attr("x", 746)
   .attr("y", 30)
-  .attr("font-size",12);
+  .attr("font-size", 12);
 
 
 
