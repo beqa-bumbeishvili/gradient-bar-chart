@@ -1,5 +1,3 @@
-defaultFont = "Helvetica";
-
 var mainDataObject = {
   legends: [{ name: "Bakken", color: "#E9DF60", id: 1 }, { name: "Barnett", color: "#AED367", id: 2 }, { name: "Delaware", color: "#79C275", id: 3 }, { name: "Eagle Ford", color: "#4CAD82", id: 4 }, { name: "Haynesville", color: "#2E9789", id: 5 }, { name: "Marcellus", color: "#2D7F86", id: 6 }, { name: "Midcontinent", color: "#3A677B", id: 7 }, { name: "Midland", color: "#444F66", id: 8 }, { name: "Tuscaloosa Marina", color: "#45384D", id: 9 }, { name: "Permian", color: "#3C2533", id: 10 }],
   bars: [
@@ -16,13 +14,18 @@ var mainDataObject = {
   format: "US$ MM",
   description: "Place holder for X axis description"
 }
+var defaultFont = "Helvetica";
+var svgHeight = 800;
+var svgWidth = 800;
+var barsCount = mainDataObject.bars.length;
+var totalValueAverage = getArithmeticAverage();
 
 setLegendForEachValue();
 setAccumulativeSum();
 
 var y = d3.scaleLinear()
   .range([350, 0])
-  .domain([0, 72500])
+  .domain([0, getHighestBarAccumulativeSum()]);
 
 var yAxis = d3.axisLeft(y)
   .ticks(5)
@@ -30,8 +33,8 @@ var yAxis = d3.axisLeft(y)
 
 var svg = d3.select("body")
   .append("svg")
-  .attr("height", 800)
-  .attr("width", 900)
+  .attr("height", svgHeight)
+  .attr("width", svgWidth)
   .attr('font-family', defaultFont);
 
 var groups = svg
@@ -39,12 +42,14 @@ var groups = svg
   .data(mainDataObject.bars)
   .enter()
   .append("g")
-  .attr("transform", function (d, i) { return "translate(" + i * 85 + "," + 30 + ")"; });
+  .attr("transform", function (d, i) { return "translate(" + i * (svgWidth / (barsCount + 2)) + "," + 0 + ")"; });
 
-quarterTexts = svg.selectAll("g")
+var quarterTexts = svg.selectAll("g")
   .append("text")
-  .attr("x",100)
-  .attr("y",550)
+  .attr("x", function (d, i) {
+    return svgWidth / barsCount;
+  })
+  .attr("y", svgHeight / 2 + 50)
   .text(function (d, i) {
     return d.label;
   })
@@ -57,7 +62,7 @@ quarterTexts = svg.selectAll("g")
 
 var axisGroup = svg.append("g")
   .call(yAxis)
-  .attr("transform", "translate(" + 800 + "," + 182 + ")")
+  .attr("transform", "translate(" + svgWidth + "," + 50 + ")")
   .attr('font-family', defaultFont)
   .selectAll(".domain").attr("opacity", 0);
 
@@ -65,21 +70,63 @@ var rect = groups.selectAll("rect")
   .data(function (d) { return d.values; })
   .enter()
   .append("rect")
-  .attr("x", 100)
-  .attr("y", 500)
+  .attr("x", function (d, i) {
+    return svgWidth / barsCount;
+  })
+  .attr("y", svgHeight / 2)
   .transition()
   .duration(1000)
   .ease(d3.easeLinear)
   .attr("y", function (d, i) {
-    return 500 - d.accumulativeSum / 220 + 1;
+    return svgHeight / 2 - d.accumulativeSum / (totalValueAverage / 30) + 1;
   })
-  .attr("width", 40)
+  .attr("width", svgWidth / barsCount / 2.5)
   .attr("height", function (d, i) {
-    return d.value / 220 + 1;
+    return d.value / (totalValueAverage / 30) + 1;
   })
   .attr("fill", function (d, i) {
     return d.legend.color;
+  });
+
+var placeHolderX = svg.append("text")
+  .text(mainDataObject.description)
+  .attr("x", svgWidth / 2 - 100)
+  .attr("y", svgHeight / 2 + 100);
+
+var legendsWrapper = svg.append("g")
+  .attr("transform", function (d, i) { return "translate(" + 100 + "," + 500 + ")"; });
+
+var legendGroups = legendsWrapper
+  .selectAll("g")
+  .data(mainDataObject.legends)
+  .enter()
+  .append("g");
+
+var legendRect = legendGroups
+  .append("rect")
+  .attr("x", function (d, i) {
+    return i % 5 * 125;
   })
+  .attr("y", function (d, i) {
+    return i < 5 ? 50 : 100
+  })
+  .attr("width", 20)
+  .attr("height", 20)
+  .attr("fill", function (d) {
+    return d.color;
+  });
+
+var legendText = legendGroups
+  .append("text")
+  .text(function (d) {
+    return d.name;
+  })
+  .attr("x", function (d, i) {
+    return i % 5 * 125 + 25;
+  })
+  .attr("y", function (d, i) {
+    return i < 5 ? 65 : 115
+  });
 
 
 function setAccumulativeSum() {
@@ -87,7 +134,7 @@ function setAccumulativeSum() {
     bar = mainDataObject.bars[i];
     for (var j = 0; j < bar.values.length; j++) {
       element = bar.values[j];
-      element.accumulativeSum = j == 0 ? element.value : element.value + bar.values[j - 1].accumulativeSum
+      element.accumulativeSum = j == 0 ? element.value : element.value + bar.values[j - 1].accumulativeSum;
     }
   }
 }
@@ -112,14 +159,25 @@ function findLegendById(id) {
   return legend;
 }
 
+function getHighestBarAccumulativeSum() {
+  firstBarValues = mainDataObject.bars[0].values
+  max = firstBarValues[firstBarValues.length - 1].accumulativeSum
+  for (var i = 1; i < mainDataObject.bars.length; i++) {
+    barValues = mainDataObject.bars[i].values;
+    max = max > barValues[barValues.length - 1].accumulativeSum ? max : barValues[barValues.length - 1].accumulativeSum;
+  }
+  return max;
+}
 
-// var dataset = [
-//     [{ "name": "Bakken", "value": 3500 }, { "name": "Barnett", "value": 8000 }, { "name": "Delaware", "value": 10000 }, { "name": "Eagle Ford", "value": 9000 }, { "name": "Haynesville", "value": 5000 }, { "name": "Marcellus", "value": 10500 }, { "name": "Midcontinent", "value": 5000 }, { "name": "Midland", "value": 4000 }, { "name": "Tuscaloosa Marina", "value": 5500 }, { "name": "Permian", "value": 5000 }],
-//     [{ "name": "Bakken", "value": 1500 }, { "name": "Barnett", "value": 3500 }, { "name": "Delaware", "value": 3000 }, { "name": "Eagle Ford", "value": 4000 }, { "name": "Haynesville", "value": 5000 }, { "name": "Marcellus", "value": 9500 }, { "name": "Midcontinent", "value": 9200 }, { "name": "Midland", "value": 8000 }, { "name": "Tuscaloosa Marina", "value": 8100 }, { "name": "Permian", "value": 16000 }],
-//     [{ "name": "Bakken", "value": 1200 }, { "name": "Barnett", "value": 500 }, { "name": "Delaware", "value": 4000 }, { "name": "Eagle Ford", "value": 6000 }, { "name": "Haynesville", "value": 5500 }, { "name": "Marcellus", "value": 5000 }, { "name": "Midcontinent", "value": 5200 }, { "name": "Midland", "value": 6000 }, { "name": "Tuscaloosa Marina", "value": 7000 }, { "name": "Permian", "value": 4000 }],
-//     [{ "name": "Bakken", "value": 5000 }, { "name": "Barnett", "value": 6000 }, { "name": "Delaware", "value": 5000 }, { "name": "Eagle Ford", "value": 5000 }, { "name": "Haynesville", "value": 6000 }, { "name": "Marcellus", "value": 2000 }, { "name": "Midcontinent", "value": 3000 }, { "name": "Midland", "value": 16000 }, { "name": "Tuscaloosa Marina", "value": 8000 }, { "name": "Permian", "value": 4500 }],
-//     [{ "name": "Bakken", "value": 1100 }, { "name": "Barnett", "value": 6500 }, { "name": "Delaware", "value": 3000 }, { "name": "Eagle Ford", "value": 6500 }, { "name": "Haynesville", "value": 6000 }, { "name": "Marcellus", "value": 6000 }, { "name": "Midcontinent", "value": 6000 }, { "name": "Midland", "value": 6500 }, { "name": "Tuscaloosa Marina", "value": 6000 }, { "name": "Permian", "value": 12000 }],
-//     [{ "name": "Bakken", "value": 1500 }, { "name": "Barnett", "value": 6500 }, { "name": "Delaware", "value": 4000 }, { "name": "Eagle Ford", "value": 7500 }, { "name": "Haynesville", "value": 7000 }, { "name": "Marcellus", "value": 5500 }, { "name": "Midcontinent", "value": 6500 }, { "name": "Midland", "value": 6500 }, { "name": "Tuscaloosa Marina", "value": 7000 }, { "name": "Permian", "value": 7500 }],
-//     [{ "name": "Bakken", "value": 1000 }, { "name": "Barnett", "value": 4000 }, { "name": "Delaware", "value": 4000 }, { "name": "Eagle Ford", "value": 1500 }, { "name": "Haynesville", "value": 4000 }, { "name": "Marcellus", "value": 4000 }, { "name": "Midcontinent", "value": 3500 }, { "name": "Midland", "value": 3500 }, { "name": "Tuscaloosa Marina", "value": 4000 }, { "name": "Permian", "value": 8500 }],
-//     [{ "name": "Bakken", "value": 3800 }, { "name": "Barnett", "value": 3000 }, { "name": "Delaware", "value": 4500 }, { "name": "Eagle Ford", "value": 3500 }, { "name": "Haynesville", "value": 8000 }, { "name": "Marcellus", "value": 20000 }, { "name": "Midcontinent", "value": 5000 }, { "name": "Midland", "value": 5000 }, { "name": "Tuscaloosa Marina", "value": 3500 }, { "name": "Permian", "value": 7500 }],
-// ];
+function getArithmeticAverage() {
+  totalLength = 0;
+  totalSum = 0;
+  for (var i = 0; i < mainDataObject.bars.length; i++) {
+    bar = mainDataObject.bars[i];
+    for (var j = 0; j < bar.values.length; j++) {
+      totalSum += bar.values[j].value;
+      totalLength += 1;
+    }
+  }
+  return totalSum / totalLength;
+}
