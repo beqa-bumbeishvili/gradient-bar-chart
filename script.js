@@ -1,3 +1,5 @@
+defaultFont = "Helvetica";
+
 var mainDataObject = {
     legends: [{ name: "Bakken", color: "#E9DF60", id: 1 }, { name: "Barnett", color: "#AED367", id: 2 }, { name: "Delaware", color: "#79C275", id: 3 }, { name: "Eagle Ford", color: "#4CAD82", id: 4 }, { name: "Haynesville", color: "#2E9789", id: 5 }, { name: "Marcellus", color: "#2D7F86", id: 6 }, { name: "Midcontinent", color: "#3A677B", id: 7 }, { name: "Midland", color: "#444F66", id: 8 }, { name: "Tuscaloosa Marina", color: "#45384D", id: 9 }, { name: "Permian", color: "#3C2533", id: 10 }],
     bars: [
@@ -20,13 +22,17 @@ setAccumulativeSum();
 
 var y = d3.scaleLinear()
     .range([350, 0])
-    .domain([0, 72500]);
+    .domain([0, 72500])
 
+var yAxis = d3.axisLeft(y)
+    .ticks(5)
+    .tickSize(0);
 
 var svg = d3.select("body")
     .append("svg")
     .attr("height", 800)
     .attr("width", 900)
+    .attr('font-family', defaultFont);
 
 var group = svg
     .selectAll("g")
@@ -35,10 +41,11 @@ var group = svg
     .append("g")
     .attr("transform", function (d, i) { return "translate(" + i * 85 + "," + 30 + ")"; });
 
-svg.append("g")
-    .call(d3.axisLeft(y))
+var axisGroup = svg.append("g")
+    .call(yAxis)
     .attr("transform", "translate(" + 800 + "," + 182 + ")")
-
+    .attr('font-family', defaultFont)
+    .selectAll(".domain").attr("opacity", 0);
 
 var rect = group.selectAll("rect")
     .data(function (d) { return d.values; })
@@ -90,9 +97,6 @@ function findLegendById(id) {
     }
     return legend;
 }
-
-
-
 
 
 // var dataset = [
