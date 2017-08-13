@@ -18,17 +18,27 @@ var mainDataObject = {
 setLegendForEachValue();
 setAccumulativeSum();
 
+var y = d3.scaleLinear()
+    .range([350, 0])
+    .domain([0, 72500]);
+
+
 var svg = d3.select("body")
     .append("svg")
     .attr("height", 800)
-    .attr("width", 800);
+    .attr("width", 900)
 
 var group = svg
     .selectAll("g")
     .data(mainDataObject.bars)
     .enter()
     .append("g")
-    .attr("transform", function(d, i){ return "translate(" + i * 85 + "," + 30 + ")"; });
+    .attr("transform", function (d, i) { return "translate(" + i * 85 + "," + 30 + ")"; });
+
+svg.append("g")
+    .call(d3.axisLeft(y))
+    .attr("transform", "translate(" + 800 + "," + 182 + ")")
+
 
 var rect = group.selectAll("rect")
     .data(function (d) { return d.values; })
@@ -56,7 +66,7 @@ function setAccumulativeSum() {
         bar = mainDataObject.bars[i];
         for (var j = 0; j < bar.values.length; j++) {
             element = bar.values[j];
-            element.accumulativeSum = j == 0 ? element.value : element.value + bar.values[j-1].accumulativeSum 
+            element.accumulativeSum = j == 0 ? element.value : element.value + bar.values[j - 1].accumulativeSum
         }
     }
 }
